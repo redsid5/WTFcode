@@ -20,3 +20,6 @@ class FailureScenario:
     likelihood: str
     consequence: str = ""   # the outage story: "users can't log in, 500s everywhere"
     mitigation: str = ""
+    why_this_happens: str = ""   # structural root cause, max 18 words
+    system_smell: str = ""       # single point of failure | high coupling | hidden dependency chain | overloaded module
+    how_to_vibe_safely: str = "" # what a vibecoder must check before touching this

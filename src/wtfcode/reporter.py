@@ -45,6 +45,7 @@ def write_failure_report(
     output_dir: Path,
     repo_path: Path,
     token_report: dict | None = None,
+    repo_intro: list[str] | None = None,
 ) -> Path:
     severity_order = {"high": 0, "medium": 1, "low": 2}
     scenarios = sorted(scenarios, key=lambda s: severity_order.get(s.severity, 1))
@@ -59,12 +60,26 @@ def write_failure_report(
         "---\n",
     ]
 
+    # Section 1: How this works in 60 seconds
+    if repo_intro:
+        lines.append("## How this works (60 seconds)\n")
+        for bullet in repo_intro:
+            lines.append(f"- {bullet}")
+        lines.append("\n---\n")
+
+    # Section 2: Where it's weak
+    lines.append("## Where it's weak\n")
+
     for i, s in enumerate(scenarios, 1):
         severity_label = {"high": "CRITICAL", "medium": "WARNING", "low": "WATCH"}.get(s.severity, s.severity.upper())
-        lines.append(f"## {i}. {s.title}")
+        lines.append(f"### {i}. {s.title}")
         lines.append(f"**[{severity_label}]** — likelihood: {s.likelihood}\n")
 
         lines.append(f"**What breaks:** {s.trigger}\n")
+
+        if s.why_this_happens:
+            smell_tag = f" `{s.system_smell}`" if s.system_smell else ""
+            lines.append(f"**Why this happens:**{smell_tag} {s.why_this_happens}\n")
 
         if s.downstream:
             lines.append("**Blast radius:**")
@@ -78,6 +93,10 @@ def write_failure_report(
 
         if s.mitigation:
             lines.append(f"**Fix it:** {s.mitigation}\n")
+
+        # Section 3 (per scenario): How to vibe safely
+        if s.how_to_vibe_safely:
+            lines.append(f"**How to vibe safely:** {s.how_to_vibe_safely}\n")
 
         lines.append("---\n")
 

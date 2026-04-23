@@ -52,14 +52,14 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool):
     label = "Generating failure scenarios (Claude)..." if use_llm else "Analyzing graph topology..."
     with console.status(label):
         try:
-            repo_files, scenarios, token_report = analyze(G, repo, repo_files, use_llm=use_llm)
+            repo_files, scenarios, token_report, repo_intro = analyze(G, repo, repo_files, use_llm=use_llm)
         except Exception as e:
             console.print(f"[red]Analysis failed:[/red] {e}")
             sys.exit(1)
 
     # Write outputs
     cp_path = write_critical_path(repo_files, out_dir, repo)
-    fr_path = write_failure_report(scenarios, out_dir, repo, token_report)
+    fr_path = write_failure_report(scenarios, out_dir, repo, token_report, repo_intro)
     tr_path = write_token_report(token_report, out_dir)
 
     # Copy graph.json into wtfcode-output
