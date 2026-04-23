@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wtfcode"
+version = "0.1.0"
+description = "Graph-first failure prediction for repos you didn't write"
+readme = "WTFcode.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-genai>=0.8.0",
+    "graphifyy>=0.3.0",
+    "click>=8.0",
+    "rich>=13.0",
+    "networkx>=3.0",
+]
+
+[project.scripts]
+wtfcode = "wtfcode.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
