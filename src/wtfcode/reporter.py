@@ -7,6 +7,24 @@ from pathlib import Path
 from .models import FailureScenario, RepoFile
 
 
+def _clean_connection(label: str) -> str | None:
+    """Return None if label looks like a docstring (should be skipped)."""
+    if len(label) > 60 or "\n" in label or label.startswith("`"):
+        return None
+    return label.strip()
+
+
+def _why_it_matters(f: RepoFile) -> str:
+    d = f.degree
+    if d >= 40:
+        return f"Single point of failure — {d} nodes depend on this. Any interface change is system-wide."
+    if d >= 20:
+        return f"Load-bearing across {len(f.connections)} downstream chains — changes here ripple broadly."
+    if d >= 10:
+        return f"Critical convergence point — {d} callers route through this with no isolation layer."
+    return f"Notable dependency — {d} nodes rely on this within the {f.community} layer."
+
+
 def write_critical_path(
     repo_files: list[RepoFile],
     output_dir: Path,
@@ -14,7 +32,8 @@ def write_critical_path(
 ) -> Path:
     lines = [
         f"# Critical Path Map — `{repo_path.name}`\n",
-        "Ranked by dependency degree. Higher = more things break if this changes.\n",
+        "> Don't touch these casually. Ranked by dependency degree — higher = more things break if this changes.\n",
+        "---\n",
     ]
 
     critical = [f for f in repo_files if f.is_critical]
@@ -22,19 +41,20 @@ def write_critical_path(
 
     lines.append("## Load-bearing nodes\n")
     for f in critical:
-        bar = "#" * int(f.fragility_score * 10)
-        lines.append(f"- **{f.path}** `{bar}` fragility={f.fragility_score} degree={f.degree}")
-        lines.append(f"  community: {f.community}")
-        if f.connections:
-            lines.append(f"  connects to: {', '.join(f.connections[:5])}")
+        lines.append(f"### `{f.path}`")
+        lines.append(f"**Why it matters:** {_why_it_matters(f)}\n")
+        lines.append(f"- Fragility score: `{f.fragility_score}` | Degree: `{f.degree}` | Layer: {f.community}")
+        clean_conns = [c for raw in f.connections if (c := _clean_connection(raw)) is not None]
+        if clean_conns:
+            lines.append(f"- Connects to: {', '.join(clean_conns[:5])}")
         lines.append("")
 
     if rest:
-        lines.append(f"## Other nodes ({len(rest)} total)\n")
+        lines.append(f"---\n\n## Watch list ({len(rest)} nodes)\n")
         for f in rest[:10]:
-            lines.append(f"- {f.path} (degree={f.degree})")
+            lines.append(f"- `{f.path}` — degree {f.degree}, {f.community} layer")
         if len(rest) > 10:
-            lines.append(f"- ... and {len(rest) - 10} more")
+            lines.append(f"- _...and {len(rest) - 10} more_")
 
     out = output_dir / "CRITICAL_PATH.md"
     out.write_text("\n".join(lines), encoding="utf-8")
