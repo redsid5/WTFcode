@@ -1,6 +1,7 @@
-"""Writes CRITICAL_PATH.md, FAILURE_REPORT.md, and tokens_saved.json."""
+"""Writes PRODUCT_OVERVIEW.md, CRITICAL_PATH.md, FAILURE_REPORT.md, and tokens_saved.json."""
 
 import json
+from collections import defaultdict
 from pathlib import Path
 
 from .models import FailureScenario, RepoFile
@@ -101,6 +102,85 @@ def write_failure_report(
         lines.append("---\n")
 
     out = output_dir / "FAILURE_REPORT.md"
+    out.write_text("\n".join(lines), encoding="utf-8")
+    return out
+
+
+def write_product_overview(
+    repo_intro: list[str],
+    scenarios: list[FailureScenario],
+    output_dir: Path,
+    repo_path: Path,
+    graph_stats: dict,
+    token_report: dict | None = None,
+) -> Path:
+    savings = token_report.get("savings_ratio", "?") if token_report else "?"
+    wtf = token_report.get("wtfcode_input_tokens", 0) if token_report else 0
+    naive = token_report.get("naive_tokens", 0) if token_report else 0
+
+    n_nodes = graph_stats.get("nodes", 0)
+    n_edges = graph_stats.get("edges", 0)
+    n_layers = graph_stats.get("communities", 0)
+    cross_pct = graph_stats.get("cross_edge_pct", 0)
+
+    # Aggregate system smells across scenarios
+    smell_nodes: dict[str, list[str]] = defaultdict(list)
+    for s in scenarios:
+        if s.system_smell:
+            smell_nodes[s.system_smell].append(s.title.split(" (")[0])
+
+    smell_descriptions = {
+        "single point of failure": "Central control points — any change propagates to every caller with no isolation layer.",
+        "high coupling": "Module bridges multiple architectural layers — changes in one layer bleed into others.",
+        "hidden dependency chain": "Deep call convergence — no isolation between callers and this node.",
+        "overloaded module": "Too many responsibilities in one place — callers absorb unrelated internal changes.",
+    }
+
+    lines = [
+        f"# Product Overview — `{repo_path.name}`\n",
+        f"> WTFcode structural analysis — {wtf:,} tokens vs {naive:,} naive ({savings}x savings)\n",
+        "---\n",
+        "## What this is\n",
+    ]
+
+    # Derive a 1-sentence summary from graph stats + god nodes
+    if repo_intro:
+        spine_bullet = next((b for b in repo_intro if "Load-bearing spine" in b), "")
+        if spine_bullet:
+            spine_names = spine_bullet.split(":")[1].split("(")[0].strip()
+            lines.append(
+                f"Codebase with {n_nodes} nodes across {n_layers} architectural layers, "
+                f"wired through **{spine_names}** as load-bearing central points.\n"
+            )
+        else:
+            lines.append(
+                f"Codebase with {n_nodes} nodes, {n_edges} edges, "
+                f"and {n_layers} architectural layers.\n"
+            )
+
+    lines.append("## How it's wired\n")
+    for bullet in repo_intro:
+        lines.append(f"- {bullet}")
+    lines.append("")
+
+    if smell_nodes:
+        lines.append("\n## System smells present\n")
+        for smell, nodes in smell_nodes.items():
+            desc = smell_descriptions.get(smell, "")
+            lines.append(f"- **`{smell}`** — affects: {', '.join(nodes)}")
+            if desc:
+                lines.append(f"  {desc}")
+        lines.append("")
+
+    lines.append("\n## Structural stats\n")
+    lines.append(f"- {n_nodes:,} nodes, {n_edges:,} edges")
+    lines.append(f"- {n_layers} architectural layers")
+    lines.append(f"- {cross_pct}% cross-layer coupling")
+    fragile = sum(1 for s in scenarios if s.severity == "high")
+    lines.append(f"- {fragile} high-severity fragility hotspots")
+    lines.append(f"\n_Full details: FAILURE_REPORT.md_\n")
+
+    out = output_dir / "PRODUCT_OVERVIEW.md"
     out.write_text("\n".join(lines), encoding="utf-8")
     return out
 

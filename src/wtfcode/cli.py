@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .graph_analyzer import analyze
-from .reporter import write_critical_path, write_failure_report, write_token_report
+from .reporter import write_critical_path, write_failure_report, write_product_overview, write_token_report
 from .scanner import extract_repo_files, load_or_build_graph
 
 console = Console()
@@ -58,6 +58,24 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool):
             sys.exit(1)
 
     # Write outputs
+    from collections import Counter as _Counter
+    _comm_counts = _Counter(
+        d.get("community_name") or str(d.get("community", "?"))
+        for _, d in G.nodes(data=True)
+    )
+    graph_stats = {
+        "nodes": G.number_of_nodes(),
+        "edges": G.number_of_edges(),
+        "communities": sum(1 for c, n in _comm_counts.items() if n >= 5 and c != "?"),
+        "cross_edge_pct": round(
+            100 * sum(
+                1 for u, v in G.edges()
+                if (G.nodes[u].get("community_name") or str(G.nodes[u].get("community")))
+                != (G.nodes[v].get("community_name") or str(G.nodes[v].get("community")))
+            ) / max(G.number_of_edges(), 1)
+        ),
+    }
+    po_path = write_product_overview(repo_intro, scenarios, out_dir, repo, graph_stats, token_report)
     cp_path = write_critical_path(repo_files, out_dir, repo)
     fr_path = write_failure_report(scenarios, out_dir, repo, token_report, repo_intro)
     tr_path = write_token_report(token_report, out_dir)
@@ -69,7 +87,7 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool):
     # Print summary
     console.print("\n[bold green]Done.[/bold green] Outputs:\n")
     cwd = Path.cwd()
-    for p in [cp_path, fr_path, tr_path, out_dir / "graph.json"]:
+    for p in [po_path, cp_path, fr_path, tr_path, out_dir / "graph.json"]:
         try:
             label = p.relative_to(cwd)
         except ValueError:
