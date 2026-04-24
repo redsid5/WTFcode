@@ -50,24 +50,46 @@ wtfcode-output/
 
 ---
 
-## Two Modes
+## Works With Any LLM
 
-**With AI** (richer causal analysis — free key at [aistudio.google.com](https://aistudio.google.com))
+WTFcode auto-detects whichever API key you already have set. No config needed.
+
+| You have | WTFcode uses | Install |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Claude (claude-sonnet-4-5) | `pip install wtfcode[anthropic]` |
+| `OPENAI_API_KEY` | GPT (gpt-4o-mini) | `pip install wtfcode[openai]` |
+| `GEMINI_API_KEY` | Gemini (gemini-2.5-flash) | `pip install wtfcode[gemini]` |
+| Ollama running locally | Ollama (llama3.2) | just run `ollama serve` |
+| None of the above | Structural mode (free) | nothing needed |
+
+**Just run the scan — it picks up your key automatically:**
 ```bash
-# Windows
-$env:GEMINI_API_KEY = "your-key"
-# Mac/Linux
-export GEMINI_API_KEY="your-key"
-
 wtfcode scan path/to/repo
 ```
 
-**Without AI** (graph topology only — instant, no API key needed)
+**Use a specific model:**
+```bash
+wtfcode scan path/to/repo --model gpt-4o
+wtfcode scan path/to/repo --model claude-opus-4-7
+wtfcode scan path/to/repo --model gemini-2.5-flash
+wtfcode scan path/to/repo --model ollama/llama3.2
+```
+
+**Use a `.env` file** (WTFcode loads it automatically if `python-dotenv` is installed):
+```bash
+pip install wtfcode[dotenv]
+```
+```
+# .env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**No key? No problem** — structural mode is free and instant:
 ```bash
 wtfcode scan path/to/repo --no-llm
 ```
 
-Both modes produce the same five output files. The `--no-llm` mode derives all failure scenarios from degree, community membership, and cross-layer coupling — no LLM call.
+Both modes produce the same five output files. The `--no-llm` mode derives all failure scenarios from degree, community membership, and cross-layer coupling — no API call.
 
 ---
 
@@ -79,7 +101,8 @@ wtfcode scan <repo_path>
 Options:
   --output-dir, -o  Where to write outputs  [default: <repo>/wtfcode-output]
   --top             Number of critical files to surface  [default: 20]
-  --no-llm          Use graph topology only; skip Gemini API
+  --no-llm          Use graph topology only; no API call
+  --model           Override model, e.g. gpt-4o, claude-opus-4-7, ollama/mistral
 ```
 
 ---
@@ -229,7 +252,7 @@ WTFcode classifies every hotspot into one of four structural smells:
 
 - Python 3.10+
 - [Graphify](https://github.com/safishamsi/graphify) (`pip install graphifyy`) — to build the knowledge graph for a repo
-- Gemini API key (optional) — free at [aistudio.google.com](https://aistudio.google.com); only needed for AI mode
+- At least one LLM API key (optional) — Anthropic, OpenAI, or Gemini; or run Ollama locally. All free to start.
 
 ---
 

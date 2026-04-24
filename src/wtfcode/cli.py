@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .graph_analyzer import analyze
+from .llm import detect_provider, load_dotenv
 from .reporter import write_critical_path, write_failure_report, write_product_overview, write_token_report
 from .scanner import extract_repo_files, load_or_build_graph
 
@@ -21,12 +23,16 @@ def main():
 @click.argument("repo_path", default=".", type=click.Path(exists=True, file_okay=False))
 @click.option("--output-dir", "-o", default=None, help="Where to write outputs (default: <repo>/wtfcode-output)")
 @click.option("--top", default=20, show_default=True, help="Number of critical files to surface")
-@click.option("--no-llm", is_flag=True, help="Skip Claude API; use graph topology only (free, faster)")
-def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool):
+@click.option("--no-llm", is_flag=True, help="Use graph topology only (free, no API key needed)")
+@click.option("--model", default=None, help="Model to use, e.g. gpt-4o, claude-sonnet-4-5, gemini-2.5-flash, ollama/llama3.2")
+def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool, model: str | None):
     """Scan a repo and produce CRITICAL_PATH.md + FAILURE_REPORT.md."""
     repo = Path(repo_path).resolve()
     out_dir = Path(output_dir).resolve() if output_dir else repo / "wtfcode-output"
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load .env from repo root so users don't need to export keys manually
+    load_dotenv(repo)
 
     console.print(f"\n[bold cyan]WTFcode scan[/bold cyan] [dim]{repo}[/dim]\n")
 
@@ -43,16 +49,23 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool):
     with console.status("Ranking critical files..."):
         repo_files = extract_repo_files(G, top_n=top)
 
-    import os
-    use_llm = not no_llm and bool(os.environ.get("GEMINI_API_KEY"))
-    if not use_llm and not no_llm:
-        console.print("  [yellow]No GEMINI_API_KEY found — running structural analysis (--no-llm mode)[/yellow]")
-        console.print("  [dim]Set GEMINI_API_KEY to enable AI failure scenario generation.[/dim]")
+    provider_info = detect_provider()
+    use_llm = not no_llm and (bool(model) or provider_info is not None)
 
-    label = "Generating failure scenarios (Claude)..." if use_llm else "Analyzing graph topology..."
+    if not use_llm and not no_llm:
+        console.print("  [yellow]No LLM API key found — running structural analysis (--no-llm mode)[/yellow]")
+        console.print("  [dim]Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY to enable AI analysis.[/dim]")
+        console.print("  [dim]Or add a .env file in the repo with your key.[/dim]")
+    elif use_llm:
+        display_model = model or (provider_info[1] if provider_info else "")
+        console.print(f"  [dim]Model: {display_model}[/dim]")
+
+    label = f"Generating failure scenarios..." if use_llm else "Analyzing graph topology..."
     with console.status(label):
         try:
-            repo_files, scenarios, token_report, repo_intro = analyze(G, repo, repo_files, use_llm=use_llm)
+            repo_files, scenarios, token_report, repo_intro = analyze(
+                G, repo, repo_files, use_llm=use_llm, model=model
+            )
         except Exception as e:
             console.print(f"[red]Analysis failed:[/red] {e}")
             sys.exit(1)

@@ -17,13 +17,12 @@ import json
 import os
 from pathlib import Path
 
-from google import genai
 import networkx as nx
 
+from .llm import call_llm
 from .models import FailureScenario, RepoFile
 from .scanner import extract_repo_files
 
-MODEL = "gemini-2.5-flash"
 MAX_NODES_IN_PROMPT = 20
 
 
@@ -259,6 +258,7 @@ def analyze(
     repo_path: Path,
     repo_files: list[RepoFile] | None = None,
     use_llm: bool = True,
+    model: str | None = None,
 ) -> tuple[list[RepoFile], list[FailureScenario], dict, list[str]]:
     """
     Core analysis: critical path ranking + failure scenario generation.
@@ -285,7 +285,7 @@ def analyze(
             "wtfcode_output_tokens": 0,
             "savings_ratio": round(naive_tokens / graph_tokens, 1) if graph_tokens else 0,
             "model": "structural (no LLM)",
-            "method": "graph topology only — set GEMINI_API_KEY for AI analysis",
+            "method": "graph topology only — set any LLM API key for AI analysis",
         }
         return repo_files, scenarios, token_report, repo_intro
 
@@ -330,20 +330,12 @@ Rules:
 - how_to_vibe_safely must reference architecture, not individual lines.
 - No preamble, no markdown fences, only the JSON object."""
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set. Run: $env:GEMINI_API_KEY='your-key-here'")
-
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-    )
+    raw_response, model_used = call_llm(prompt, model=model)
 
     wtfcode_input_tokens = len(prompt) // 4
-    wtfcode_output_tokens = len(response.text) // 4
+    wtfcode_output_tokens = len(raw_response) // 4
 
-    raw = response.text.strip()
+    raw = raw_response.strip()
     # Strip accidental markdown fences
     if raw.startswith("```"):
         raw = raw.split("```")[1]
@@ -381,7 +373,7 @@ Rules:
         "wtfcode_input_tokens": wtfcode_input_tokens,
         "wtfcode_output_tokens": wtfcode_output_tokens,
         "savings_ratio": savings_ratio,
-        "model": MODEL,
+        "model": model_used,
         "method": "compact graph summary (top 20 nodes by degree)",
     }
 
