@@ -1,29 +1,60 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "wtfcode"
-version = "0.1.0"
-description = "Graph-first failure prediction for repos you didn't write"
+description = "Graph-first failure prediction for repos you didn't write."
 readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.10"
+authors = [
+  {name = "Siddharth Reddy", email = "redsid5@example.com"},
+]
+maintainers = [
+  {name = "Siddharth Reddy", email = "redsid5@example.com"},
+]
+keywords = [
+  "ai",
+  "code-analysis",
+  "static-analysis",
+  "failure-prediction",
+  "graph-analysis",
+  "llm",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
-    "graphifyy>=0.3.0",
-    "click>=8.0",
-    "rich>=13.0",
-    "networkx>=3.0",
+  # Base dependencies (update versions as needed)
+  "pydantic>=2.0",
+  "typer>=0.9.0",
+  "rich>=13.0",
+  "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
-anthropic = ["anthropic>=0.40.0"]
-openai    = ["openai>=1.0.0"]
-gemini    = ["google-genai>=0.8.0"]
-dotenv    = ["python-dotenv>=1.0.0"]
-all       = ["anthropic>=0.40.0", "openai>=1.0.0", "google-genai>=0.8.0", "python-dotenv>=1.0.0"]
+anthropic = ["anthropic>=0.35"]
+openai = ["openai>=1.30"]
+gemini = ["google-generativeai>=0.5"]
+ollama = ["ollama"]
+dotenv = ["python-dotenv"]
+
+[project.urls]
+Homepage = "https://github.com/redsid5/WTFcode"
+Repository = "https://github.com/redsid5/WTFcode"
+Documentation = "https://github.com/redsid5/WTFcode#readme"
 
 [project.scripts]
-wtfcode = "wtfcode.cli:main"
+wtfcode = "wtfcode.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
