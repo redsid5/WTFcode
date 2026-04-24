@@ -247,3 +247,9 @@ pytest tests/
 ```
 
 The contract tests in `tests/test_contracts.py` verify the output bundle shape, model field contracts, and CLI options. Tests that require a pre-built graph are skipped automatically if `graphify-out/graph.json` is absent.
+
+---
+
+## Author
+
+Built by **Siddharth Reddy**.
