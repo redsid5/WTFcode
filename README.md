@@ -20,25 +20,18 @@ It never reads raw files. It reads a compact graph summary (~700 tokens instead 
 
 ## Quick Start
 
-**Step 1 — Install WTFcode**
+**Step 1 — Install**
 ```bash
-pip install -e .
+pip install wtfcode
+```
+This installs both WTFcode and Graphify in one shot. Nothing else needed.
+
+**Step 2 — Scan**
+```bash
+wtfcode scan path/to/repo
 ```
 
-**Step 2 — Build the graph for the repo you want to analyze** (once per repo)
-```bash
-cd target-repo
-pip install graphifyy
-# then in Claude Code: /graphify .
-# or from terminal:   python -m graphify .
-```
-
-**Step 3 — Run the scan**
-```bash
-wtfcode scan path/to/target-repo
-```
-
-**Step 4 — Read the output, starting with `PRODUCT_OVERVIEW.md`**
+**Step 3 — Read the output, starting with `PRODUCT_OVERVIEW.md`**
 ```
 wtfcode-output/
 ├── PRODUCT_OVERVIEW.md   ← start here: what this is, how it's wired, smells
@@ -47,6 +40,8 @@ wtfcode-output/
 ├── tokens_saved.json     ← proof: N tokens vs M naive (Xx savings)
 └── graph.json            ← raw graph for future queries
 ```
+
+> **Richer analysis (optional):** Run `/graphify .` in Claude Code first to build a full semantic graph. WTFcode automatically uses it if present — otherwise it builds a structural graph from your code directly.
 
 ---
 
@@ -251,7 +246,6 @@ WTFcode classifies every hotspot into one of four structural smells:
 ## Requirements
 
 - Python 3.10+
-- [Graphify](https://github.com/safishamsi/graphify) (`pip install graphifyy`) — to build the knowledge graph for a repo
 - At least one LLM API key (optional) — Anthropic, OpenAI, or Gemini; or run Ollama locally. All free to start.
 
 ---
@@ -261,7 +255,7 @@ WTFcode classifies every hotspot into one of four structural smells:
 ```bash
 git clone <this-repo>
 cd WTFcode
-pip install -e .
+pip install -e .          # installs wtfcode + graphify together
 ```
 
 Run tests:
