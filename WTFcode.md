@@ -1,56 +1,53 @@
-<p align="center">
-   <a href="https://graphifylabs.ai"><img src="https://raw.githubusercontent.com/safishamsi/graphify/v4/docs/logo-text.svg" width="260" height="64" alt="Graphify"/></a>
-</p>
+# WTFcode
 
-<p align="center">
-   🇺🇸 <a href="README.md">English</a> | 🇨🇳 <a href="docs/translations/README.zh-CN.md">简体中文</a> | 🇯🇵 <a href="docs/translations/README.ja-JP.md">日本語</a> | 🇰🇷 <a href="docs/translations/README.ko-KR.md">한국어</a> | 🇩🇪 <a href="docs/translations/README.de-DE.md">Deutsch</a> | 🇫🇷 <a href="docs/translations/README.fr-FR.md">Français</a> | 🇪🇸 <a href="docs/translations/README.es-ES.md">Español</a> | 🇮🇳 <a href="docs/translations/README.hi-IN.md">हिन्दी</a> | 🇧🇷 <a href="docs/translations/README.pt-BR.md">Português</a> | 🇷🇺 <a href="docs/translations/README.ru-RU.md">Русский</a> | 🇸🇦 <a href="docs/translations/README.ar-SA.md">العربية</a> | 🇮🇹 <a href="docs/translations/README.it-IT.md">Italiano</a> | 🇵🇱 <a href="docs/translations/README.pl-PL.md">Polski</a> | 🇳🇱 <a href="docs/translations/README.nl-NL.md">Nederlands</a> | 🇹🇷 <a href="docs/translations/README.tr-TR.md">Türkçe</a> | 🇺🇦 <a href="docs/translations/README.uk-UA.md">Українська</a> | 🇻🇳 <a href="docs/translations/README.vi-VN.md">Tiếng Việt</a> | 🇮🇩 <a href="docs/translations/README.id-ID.md">Bahasa Indonesia</a> | 🇸🇪 <a href="docs/translations/README.sv-SE.md">Svenska</a> | 🇬🇷 <a href="docs/translations/README.el-GR.md">Ελληνικά</a> | 🇷🇴 <a href="docs/translations/README.ro-RO.md">Română</a> | 🇨🇿 <a href="docs/translations/README.cs-CZ.md">Čeština</a> | 🇫🇮 <a href="docs/translations/README.fi-FI.md">Suomi</a> | 🇩🇰 <a href="docs/translations/README.da-DK.md">Dansk</a> | 🇳🇴 <a href="docs/translations/README.no-NO.md">Norsk</a> | 🇭🇺 <a href="docs/translations/README.hu-HU.md">Magyar</a> | 🇹🇭 <a href="docs/translations/README.th-TH.md">ภาษาไทย</a> | 🇹🇼 <a href="docs/translations/README.zh-TW.md">繁體中文</a>
-</p>
+WTFcode turns a repo into a graph, then explains how it works, where it's fragile, and what will break first.
 
-<p align="center">
-   <a href="https://github.com/safishamsi/graphify/actions/workflows/ci.yml"><img src="https://github.com/safishamsi/graphify/actions/workflows/ci.yml/badge.svg?branch=v4" alt="CI"/></a>
-   <a href="https://pypi.org/project/graphifyy/"><img src="https://img.shields.io/pypi/v/graphifyy" alt="PyPI"/></a>
-   <a href="https://pepy.tech/project/graphifyy"><img src="https://static.pepy.tech/badge/graphifyy" alt="Downloads"/></a>
-   <a href="https://github.com/sponsors/safishamsi"><img src="https://img.shields.io/badge/sponsor-safishamsi-ea4aaa?logo=github-sponsors" alt="Sponsor"/></a>
-   <a href="https://www.linkedin.com/in/safi-shamsi"><img src="https://img.shields.io/badge/LinkedIn-Safi%20Shamsi-0077B5?logo=linkedin" alt="LinkedIn"/></a>
-</p>
+One command. Five files. No prompt engineering.
 
-<p align="center">
-   <a href="https://star-history.com/#safishamsi/graphify&Date">
-      <img src="https://api.star-history.com/svg?repos=safishamsi/graphify&type=Date" alt="Star History Chart" width="600"/>
-   </a>
-</p>
+---
 
-**Find the parts of your codebase that will break everything — before prod does.**
+## Quick Start
 
-`wtfcode scan .` builds a knowledge graph of your repo, ranks every file by how many things depend on it, and tells you exactly what breaks if each one fails. It uses 577x fewer tokens than dumping your repo into an AI chat, so it's fast and cheap to run on any codebase.
-
-Fully multimodal. Drop in code, PDFs, markdown, screenshots, diagrams, whiteboard photos, images in other languages, or video and audio files - graphify extracts concepts and relationships from all of it and connects them into one graph. Videos are transcribed with Whisper using a domain-aware prompt derived from your corpus. 25 languages supported via tree-sitter AST (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, C#, Kotlin, Scala, PHP, Swift, Lua, Zig, PowerShell, Elixir, Objective-C, Julia, Verilog, SystemVerilog, Vue, Svelte, Dart).
-
-> Andrej Karpathy keeps a `/raw` folder where he drops papers, tweets, screenshots, and notes. graphify is the answer to that problem - 71.5x fewer tokens per query vs reading the raw files, persistent across sessions, honest about what it found vs guessed.
-
-```
-/graphify .                        # works on any folder - your codebase, notes, papers, anything
+**1. Install WTFcode**
+```bash
+pip install -e .
 ```
 
-```
-graphify-out/
-├── graph.html       interactive graph - open in any browser, click nodes, search, filter by community
-├── GRAPH_REPORT.md  god nodes, surprising connections, suggested questions
-├── graph.json       persistent graph - query weeks later without re-reading
-└── cache/           SHA256 cache - re-runs only process changed files
-```
-
-Add a `.graphifyignore` file to exclude folders you don't want in the graph:
-
-```
-# .graphifyignore
-vendor/
-node_modules/
-dist/
-*.generated.py
+**2. Build the graph for the repo you want to analyze** (once per repo)
+```bash
+cd your-repo
+pip install graphifyy
+# In Claude Code: /graphify .
+# From terminal:  python -m graphify .
 ```
 
-Same syntax as `.gitignore`. You can keep a single `.graphifyignore` at your repo root - patterns work correctly even when graphify is run on a subfolder.
+**3. Scan**
+```bash
+wtfcode scan .
+```
+
+**4. Read the output — start with `PRODUCT_OVERVIEW.md`**
+```
+wtfcode-output/
+├── PRODUCT_OVERVIEW.md   ← start here: what this is, how it's wired, smells present
+├── FAILURE_REPORT.md     ← where it breaks, blast radius, how to vibe safely
+├── CRITICAL_PATH.md      ← don't touch these casually
+├── tokens_saved.json     ← proof: N tokens vs M naive (Xx savings)
+└── graph.json            ← raw graph for future queries
+```
+
+**With AI scenarios** (richer causal analysis — free Gemini key at aistudio.google.com)
+```bash
+$env:GEMINI_API_KEY = "your-key"
+wtfcode scan .
+```
+
+**Without a graph yet**
+```bash
+wtfcode scan . --no-llm   # structural analysis from topology only
+```
+
+---
 
 ## Proven on FastAPI
 
@@ -61,35 +58,43 @@ $ wtfcode scan fastapi/
 
   Token discipline
     Naive (read all files):  568,365 tokens
-    WTFcode (graph summary):     984 tokens
-    Savings ratio:             577.6x
+    WTFcode (graph summary):     683 tokens
+    Savings ratio:             832.2x
 
   Top failure scenarios
-  1. Core Exception Handler Failure     [CRITICAL]
-     HTTPException controls 107 nodes. Change its interface and 107 routes break.
+  ┌─────────────────────────────────────┬────────┬──────────────────────────────┐
+  │ Scenario                            │  Sev   │ If this breaks               │
+  ├─────────────────────────────────────┼────────┼──────────────────────────────┤
+  │ HTTPException (exceptions.py)       │  high  │ 107 dependents fail          │
+  │ DefaultPlaceholder (datastructures) │  high  │ 56 dependents fail           │
+  │ RequestValidationError              │  high  │ 52 dependents fail           │
+  └─────────────────────────────────────┴────────┴──────────────────────────────┘
 
-  2. APIRouter Core Dispatching Breakdown  [CRITICAL]
-     The routing layer touches every registered endpoint. A bug here is a full outage.
-
-  3. DefaultPlaceholder Data Corruption  [CRITICAL]
-     56 components rely on this for default values. Silent corruption, no stack trace.
+  Full report: wtfcode-output/FAILURE_REPORT.md
 ```
 
-## WTFcode is powered by Graphify + 71.5x token discipline
+`PRODUCT_OVERVIEW.md` opens with:
+> Codebase with 532 nodes across 12 architectural layers, wired through HTTPException,
+> DefaultPlaceholder, RequestValidationError as load-bearing central points.
+>
+> System smells present:
+> - `single point of failure` — HTTPException, DefaultPlaceholder, RequestValidationError,
+>   WebSocketRequestValidationError, models.py
+>   Central control points — any change propagates to every caller with no isolation layer.
 
-WTFcode does not just guess at failure points — it uses a graph-first extraction pipeline (Graphify) and token-minimization rules (CLAUDE.md) to understand your repo with extreme efficiency. The same rules that cut token usage 71.5x across the workflow now power failure prediction: critical path mapping, dependency fragility, and "if this breaks → this happens" scenarios. This means WTFcode runs Claude cheaper and smarter than naive prompting, giving you repo insights without the usual AI cost bloat.
+---
 
-```
-wtfcode scan .
-```
+## How it works
 
-```
-wtfcode-output/
-├── CRITICAL_PATH.md     # entry points → flows → dependencies → critical files
-├── FAILURE_REPORT.md    # top 5 failure scenarios + downstream impact
-├── tokens_saved.json    # naive Claude: Xk tokens, WTFcode: Yk tokens (Zx savings)
-└── graph.json           # Graphify output (queryable, persistent)
-```
+WTFcode reads the knowledge graph built by [Graphify](https://github.com/safishamsi/graphify), ranks every node by dependency degree, and sends a compact summary (~700 tokens) to the LLM instead of raw files (~568k tokens for FastAPI). That compact summary is the context block the LLM reasons over — it never reads individual files.
+
+**Graph first.** Build once, query many times. The graph survives across sessions.
+
+**Token discipline.** 832x fewer tokens than dumping your repo into an AI chat. The savings are measurable: `tokens_saved.json` shows the exact numbers after every run.
+
+**No LLM required for structural analysis.** `--no-llm` derives failure scenarios purely from graph topology — degree, community membership, cross-layer coupling. Useful when there is no API key or when you want a fast baseline.
+
+---
 
 ## How WTFcode works
 
