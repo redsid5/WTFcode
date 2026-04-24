@@ -4,11 +4,10 @@ from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.table import Table
 
-from .graph_analyzer import analyze
+from .graph_analyzer import analyze, top_node_risk_share
 from .llm import detect_provider, load_dotenv
-from .reporter import write_critical_path, write_failure_report, write_product_overview, write_token_report
+from .reporter import write_critical_path, write_easy_overview, write_failure_report, write_product_overview, write_token_report
 from .scanner import extract_repo_files, load_or_build_graph
 
 console = Console()
@@ -84,6 +83,7 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool, model: 
             ) / max(G.number_of_edges(), 1)
         ),
     }
+    eo_path = write_easy_overview(repo_intro, scenarios, graph_stats, out_dir, repo)
     po_path = write_product_overview(repo_intro, scenarios, out_dir, repo, graph_stats, token_report)
     cp_path = write_critical_path(repo_files, out_dir, repo)
     fr_path = write_failure_report(scenarios, out_dir, repo, token_report, repo_intro)
@@ -96,46 +96,24 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool, model: 
     # Print summary
     console.print("\n[bold green]Done.[/bold green] Outputs:\n")
     cwd = Path.cwd()
-    for p in [po_path, fr_path, cp_path, tr_path, out_dir / "graph.json"]:
+    for p in [eo_path, po_path, fr_path, cp_path, tr_path, out_dir / "graph.json"]:
         try:
             label = p.relative_to(cwd)
         except ValueError:
             label = p
         console.print(f"  {label}")
 
-    _print_token_savings(token_report)
-    _print_top_failures(scenarios)
+    _print_risk_summary(repo_files, token_report)
 
 
-def _print_token_savings(report: dict):
-    ratio = report["savings_ratio"]
-    naive = report["naive_tokens"]
-    wtfcode = report["wtfcode_input_tokens"]
+def _print_risk_summary(repo_files, token_report: dict):
+    pct = top_node_risk_share(repo_files)
+    ratio = token_report["savings_ratio"]
+    naive = token_report["naive_tokens"]
+    wtfcode = token_report["wtfcode_input_tokens"]
 
-    console.print(f"\n[bold]Token discipline[/bold]")
-    console.print(f"  Naive (read all files):  [red]{naive:,}[/red] tokens")
-    console.print(f"  WTFcode (graph summary): [green]{wtfcode:,}[/green] tokens")
-    console.print(f"  Savings ratio:           [bold green]{ratio}x[/bold green]\n")
+    console.print(f"\n  [bold]Top 3 nodes drive ~{pct}% of structural risk:[/bold]")
+    for i, f in enumerate(repo_files[:3], 1):
+        console.print(f"    {i}. [cyan]{f.path:<42}[/cyan] [dim]{f.degree} dependents[/dim]")
 
-
-def _print_top_failures(scenarios):
-    if not scenarios:
-        return
-
-    table = Table(title="Top failure scenarios", show_lines=True, min_width=72)
-    table.add_column("#", style="dim", width=3)
-    table.add_column("Scenario", style="bold", min_width=30)
-    table.add_column("Sev", justify="center", width=7)
-    table.add_column("If this breaks", min_width=34)
-
-    severity_color = {"high": "red", "medium": "yellow", "low": "green"}
-    for i, s in enumerate(scenarios[:5], 1):
-        color = severity_color.get(s.severity, "white")
-        # Use consequence (user-facing outage story) — it's already 1 sentence
-        impact = s.consequence or s.trigger
-        # Clean to first sentence only
-        first_sentence = impact.split(".")[0].strip()
-        table.add_row(str(i), s.title, f"[{color}]{s.severity}[/{color}]", first_sentence)
-
-    console.print(table)
-    console.print("  [dim]Full report: wtfcode-output/FAILURE_REPORT.md[/dim]\n")
+    console.print(f"\n  [dim]Token compression: {naive:,} → {wtfcode:,} ({ratio}x)[/dim]\n")

@@ -213,9 +213,9 @@ def _structural_scenarios(G: nx.Graph, repo_files: list[RepoFile]) -> list[Failu
                 )
         elif n_communities >= 4:
             smell = "high coupling"
-            why = f"Bridges {n_communities} architectural communities, entangling {src} with unrelated system layers."
+            why = f"Connects {n_communities} distinct subsystems (approx) — changes in {src} bleed across unrelated layers."
             vibe = (
-                f"If you touch {src}, run integration tests across all {n_communities} layers it connects. "
+                f"If you touch {src}, run integration tests across all subsystems it connects. "
                 "Don't add new responsibilities here — create a separate module."
             )
         elif degree >= 10:
@@ -226,12 +226,7 @@ def _structural_scenarios(G: nx.Graph, repo_files: list[RepoFile]) -> list[Failu
                 "Any interface change silently cascades — there is no safety net between callers."
             )
         else:
-            smell = "overloaded module"
-            why = f"{src} handles too many roles — callers absorb unrelated internal changes."
-            vibe = (
-                f"Keep new logic out of {src}. "
-                "If you're copying this pattern, split it: one file per responsibility."
-            )
+            continue  # degree < 10 and spans < 4 subsystems — not structurally significant in v1
 
         severity = "high" if degree >= 20 else "medium" if degree >= 8 else "low"
         title = label if label == src else f"{label} ({src})"
@@ -251,6 +246,15 @@ def _structural_scenarios(G: nx.Graph, repo_files: list[RepoFile]) -> list[Failu
             break
 
     return scenarios
+
+
+def top_node_risk_share(repo_files: list[RepoFile], top_n: int = 3, pool_n: int = 20) -> int:
+    """Structural risk share of top_n nodes vs top pool_n nodes. Returns integer percentage."""
+    pool = repo_files[:pool_n]
+    top = repo_files[:top_n]
+    pool_sum = sum(f.degree for f in pool)
+    top_sum = sum(f.degree for f in top)
+    return round(100 * top_sum / pool_sum) if pool_sum else 0
 
 
 def analyze(
@@ -315,8 +319,8 @@ Produce exactly this JSON and nothing else:
       "likelihood": "high|medium|low",
       "consequence": "1 sentence: what the user experiences when this fails. No jargon.",
       "mitigation": "1 concrete action a developer can do today. Name a specific file or test.",
-      "why_this_happens": "1 sentence (max 18 words): what structural property makes this failure likely. Use one of: single point of failure, high coupling, hidden dependency chain, overloaded module.",
-      "system_smell": "single point of failure|high coupling|hidden dependency chain|overloaded module",
+      "why_this_happens": "1 sentence (max 18 words): what structural property makes this failure likely. Use one of: single point of failure, high coupling, hidden dependency chain.",
+      "system_smell": "single point of failure|high coupling|hidden dependency chain",
       "how_to_vibe_safely": "2 sentences: what a developer must check before touching this. First: what not to do. Second: the safer pattern."
     }}
   ]

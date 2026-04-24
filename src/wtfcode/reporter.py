@@ -25,10 +25,10 @@ def _why_it_matters(f: RepoFile) -> str:
     if d >= 40:
         return f"Single point of failure — {d} nodes depend on this. Any interface change is system-wide."
     if d >= 20:
-        return f"Load-bearing across {len(f.connections)} downstream chains — changes here ripple broadly."
+        return f"Load-bearing — {d} dependents across multiple subsystems. Changes ripple broadly."
     if d >= 10:
-        return f"Critical convergence point — {d} callers route through this with no isolation layer."
-    return f"Notable dependency — {d} nodes rely on this within the {f.community} layer."
+        return f"Convergence point — {d} callers route through this with no isolation layer."
+    return f"Notable dependency — {d} nodes rely on this. Lower blast radius but worth watching."
 
 
 def write_critical_path(
@@ -36,31 +36,50 @@ def write_critical_path(
     output_dir: Path,
     repo_path: Path,
 ) -> Path:
-    lines = [
-        f"# Critical Path Map — `{repo_path.name}`\n",
-        "> Don't touch these casually. Ranked by dependency degree — higher = more things break if this changes.\n",
-        "---\n",
-    ]
-
     critical = [f for f in repo_files if f.is_critical]
     rest = [f for f in repo_files if not f.is_critical]
 
-    lines.append("## Load-bearing nodes\n")
-    for f in critical:
-        lines.append(f"### `{f.path}`")
-        lines.append(f"**Why it matters:** {_why_it_matters(f)}\n")
-        # community is either a name or a raw int string — show as "layer N" when it's numeric
-        layer_display = f.community if not f.community.isdigit() else f"layer {f.community}"
-        lines.append(f"- Fragility score: `{f.fragility_score}` | Degree: `{f.degree}` | {layer_display}")
+    # Structural risk share: top 3 vs top 20 pool
+    pool_sum = sum(f.degree for f in repo_files[:20]) or 1
+    top_sum = sum(f.degree for f in repo_files[:3])
+    pct = round(100 * top_sum / pool_sum)
+
+    lines = [
+        f"# Critical Path Map — `{repo_path.name}`\n",
+        "> Ranked by structural risk (degree + centrality approximation). "
+        "Don't touch the top nodes without checking what depends on them.\n",
+        "---\n",
+        f"## Top 3 structural risk nodes (~{pct}% of structural risk)\n",
+        "> _Risk % is estimated from graph topology — not from runtime data or failure logs._\n",
+    ]
+
+    for i, f in enumerate(repo_files[:3], 1):
+        layer_display = f.community if not f.community.isdigit() else f"subsystem {f.community}"
         clean_conns = [c for raw in f.connections if (c := _clean_connection(raw)) is not None]
+        lines.append(f"**{i}. `{f.path}`**")
+        lines.append(f"- {f.degree} dependents — {_why_it_matters(f)}")
+        lines.append(f"- subsystem: {layer_display}")
         if clean_conns:
-            lines.append(f"- Connects to: {', '.join(clean_conns[:5])}")
+            lines.append(f"- connects to: {', '.join(clean_conns[:4])}")
         lines.append("")
+
+    remaining_critical = critical[3:]
+    if remaining_critical:
+        lines.append(f"---\n\n## Load-bearing nodes ({len(remaining_critical)} more)\n")
+        for f in remaining_critical:
+            layer_display = f.community if not f.community.isdigit() else f"subsystem {f.community}"
+            lines.append(f"### `{f.path}`")
+            lines.append(f"**Why it matters:** {_why_it_matters(f)}\n")
+            lines.append(f"- Fragility: `{f.fragility_score}` | Degree: `{f.degree}` | {layer_display}")
+            clean_conns = [c for raw in f.connections if (c := _clean_connection(raw)) is not None]
+            if clean_conns:
+                lines.append(f"- Connects to: {', '.join(clean_conns[:5])}")
+            lines.append("")
 
     if rest:
         lines.append(f"---\n\n## Watch list ({len(rest)} nodes)\n")
         for f in rest[:10]:
-            lines.append(f"- `{f.path}` — degree {f.degree}, {f.community} layer")
+            lines.append(f"- `{f.path}` — {f.degree} dependents")
         if len(rest) > 10:
             lines.append(f"- _...and {len(rest) - 10} more_")
 
@@ -86,6 +105,8 @@ def write_failure_report(
     lines = [
         f"# WTFcode Failure Report — `{repo_path.name}`\n",
         f"> Scanned {repo_path.name} in {wtf:,} tokens vs {naive:,} naive ({savings}x savings)\n",
+        "> **Note:** Structural risk is estimated from graph topology (degree, centrality, bridging behavior) "
+        "— not from runtime data or failure logs. Rankings are a structural proxy, not ground truth.\n",
         "---\n",
     ]
 
@@ -159,9 +180,8 @@ def write_product_overview(
 
     smell_descriptions = {
         "single point of failure": "Central control points — any change propagates to every caller with no isolation layer.",
-        "high coupling": "Module bridges multiple architectural layers — changes in one layer bleed into others.",
+        "high coupling": "Connects multiple distinct subsystems (approx) — changes in one layer bleed into others.",
         "hidden dependency chain": "Deep call convergence — no isolation between callers and this node.",
-        "overloaded module": "Too many responsibilities in one place — callers absorb unrelated internal changes.",
     }
 
     lines = [
@@ -209,6 +229,65 @@ def write_product_overview(
     lines.append(f"\n_Full details: FAILURE_REPORT.md_\n")
 
     out = output_dir / "PRODUCT_OVERVIEW.md"
+    out.write_text("\n".join(lines), encoding="utf-8")
+    return out
+
+
+def write_easy_overview(
+    repo_intro: list[str],
+    scenarios: list[FailureScenario],
+    graph_stats: dict,
+    output_dir: Path,
+    repo_path: Path,
+) -> Path:
+    high = [s for s in scenarios if s.severity == "high"]
+    n_nodes = graph_stats.get("nodes", 0)
+    n_layers = graph_stats.get("communities", 0)
+
+    lines = [
+        f"# Easy Overview — `{repo_path.name}`\n",
+        "> Read this before you change anything. Know these three things before you write a line.\n",
+        "---\n",
+        "## What this is\n",
+    ]
+
+    if repo_intro:
+        lines.append(f"{repo_intro[0]}\n")
+    else:
+        lines.append(f"A codebase with {n_nodes} nodes across {n_layers} architectural layers.\n")
+
+    if len(repo_intro) > 1:
+        lines.append("## How it's wired\n")
+        for bullet in repo_intro[1:]:
+            lines.append(f"- {bullet}")
+        lines.append("")
+
+    if high:
+        lines.append("\n## Most dangerous to change\n")
+        lines.append(
+            "These have the highest blast radius. "
+            "Touch them without checking and you'll break things you didn't expect.\n"
+        )
+        for s in high[:3]:
+            lines.append(f"### {s.title}")
+            lines.append(f"{s.trigger}")
+            if s.consequence:
+                lines.append(f"\n**If it breaks:** {s.consequence}")
+            if s.how_to_vibe_safely:
+                lines.append(f"\n**Safe approach:** {s.how_to_vibe_safely}")
+            lines.append("")
+
+    lines += [
+        "\n---\n",
+        "## Before you start — answer these in plain English\n",
+        "1. **What does this service do?**",
+        "2. **What is the main user-facing flow?**",
+        "3. **Which files could break 50+ other files if changed?**\n",
+        "If you can't answer all three, read `PRODUCT_OVERVIEW.md` first.",
+        "Then paste all output files into your AI coder — it handles the details.\n",
+    ]
+
+    out = output_dir / "EASY_OVERVIEW.md"
     out.write_text("\n".join(lines), encoding="utf-8")
     return out
 

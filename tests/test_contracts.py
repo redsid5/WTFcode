@@ -2,7 +2,7 @@
 Contract tests for WTFcode's load-bearing interfaces.
 
 These tests catch silent drift in:
-  1. Output bundle — all five files must be produced
+  1. Output bundle — all six files must be produced
   2. Report sections — required headings must be present
   3. Model fields — FailureScenario and RepoFile must not lose fields
   4. CLI interface — expected options must be present
@@ -98,6 +98,7 @@ class TestOutputBundleContract:
             from wtfcode.scanner import load_or_build_graph, extract_repo_files
             from wtfcode.graph_analyzer import analyze
             from wtfcode.reporter import (
+                write_easy_overview,
                 write_product_overview,
                 write_critical_path,
                 write_failure_report,
@@ -119,6 +120,7 @@ class TestOutputBundleContract:
                 "cross_edge_pct": 20,
             }
 
+            write_easy_overview(repo_intro, scenarios, graph_stats, out, REPO_ROOT)
             write_product_overview(repo_intro, scenarios, out, REPO_ROOT, graph_stats, token_report)
             write_critical_path(repo_files, out, REPO_ROOT)
             write_failure_report(scenarios, out, REPO_ROOT, token_report, repo_intro)
@@ -127,8 +129,9 @@ class TestOutputBundleContract:
 
             yield out
 
-    def test_all_five_files_present(self, output_dir):
+    def test_all_six_files_present(self, output_dir):
         expected = [
+            "EASY_OVERVIEW.md",
             "PRODUCT_OVERVIEW.md",
             "FAILURE_REPORT.md",
             "CRITICAL_PATH.md",
@@ -137,6 +140,11 @@ class TestOutputBundleContract:
         ]
         for name in expected:
             assert (output_dir / name).exists(), f"Missing: {name}"
+
+    def test_easy_overview_sections(self, output_dir):
+        text = (output_dir / "EASY_OVERVIEW.md").read_text(encoding="utf-8")
+        for section in ("## What this is", "## Before you start"):
+            assert section in text, f"EASY_OVERVIEW.md missing section: {section}"
 
     def test_product_overview_sections(self, output_dir):
         text = (output_dir / "PRODUCT_OVERVIEW.md").read_text(encoding="utf-8")
@@ -151,7 +159,7 @@ class TestOutputBundleContract:
     def test_critical_path_has_why_it_matters(self, output_dir):
         text = (output_dir / "CRITICAL_PATH.md").read_text(encoding="utf-8")
         assert "Why it matters" in text
-        assert "Don't touch these casually" in text
+        assert "structural risk" in text
 
     def test_tokens_saved_schema(self, output_dir):
         data = json.loads((output_dir / "tokens_saved.json").read_text(encoding="utf-8"))
