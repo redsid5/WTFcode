@@ -185,6 +185,9 @@ def _structural_scenarios(G: nx.Graph, repo_files: list[RepoFile]) -> list[Failu
         neighbor_labels: list[str] = []
         for n in neighbors:
             lbl = _clean_label(G, n)
+            # skip bare method names like .__init__() — meaningless without class context
+            if lbl.startswith(".") or not lbl:
+                continue
             if lbl not in seen_labels:
                 seen_labels.add(lbl)
                 neighbor_labels.append(lbl)
@@ -194,13 +197,21 @@ def _structural_scenarios(G: nx.Graph, repo_files: list[RepoFile]) -> list[Failu
         neighbor_communities = {G.nodes[n].get("community_name", "?") for n in neighbors}
         n_communities = len(neighbor_communities)
 
+        is_file_node = label == src or label.endswith(".py") or label.endswith(".ts") or label.endswith(".js")
+
         if degree >= 40:
             smell = "single point of failure"
             why = f"Centralized control: {degree} nodes depend on it, making every caller a victim of one change."
-            vibe = (
-                f"Never edit {label} directly. Wrap it or subclass it. "
-                f"If you must change it, grep for every caller first — there are {degree} of them."
-            )
+            if is_file_node:
+                vibe = (
+                    f"Treat {label} as read-only. "
+                    f"If you must change it, grep every caller first — there are {degree} of them."
+                )
+            else:
+                vibe = (
+                    f"Never edit {label} directly — wrap or subclass it instead. "
+                    f"If you must change it, grep for every caller first — there are {degree} of them."
+                )
         elif n_communities >= 4:
             smell = "high coupling"
             why = f"Bridges {n_communities} architectural communities, entangling {src} with unrelated system layers."
@@ -224,8 +235,9 @@ def _structural_scenarios(G: nx.Graph, repo_files: list[RepoFile]) -> list[Failu
             )
 
         severity = "high" if degree >= 20 else "medium" if degree >= 8 else "low"
+        title = label if label == src else f"{label} ({src})"
         scenarios.append(FailureScenario(
-            title=f"{label} ({src})",
+            title=title,
             trigger=f"{label} in {src} breaks or changes its interface. {degree} nodes depend on it.",
             downstream=neighbor_labels,
             severity=severity,

@@ -87,7 +87,7 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool):
     # Print summary
     console.print("\n[bold green]Done.[/bold green] Outputs:\n")
     cwd = Path.cwd()
-    for p in [po_path, cp_path, fr_path, tr_path, out_dir / "graph.json"]:
+    for p in [po_path, fr_path, cp_path, tr_path, out_dir / "graph.json"]:
         try:
             label = p.relative_to(cwd)
         except ValueError:

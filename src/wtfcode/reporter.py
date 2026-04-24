@@ -8,10 +8,16 @@ from .models import FailureScenario, RepoFile
 
 
 def _clean_connection(label: str) -> str | None:
-    """Return None if label looks like a docstring (should be skipped)."""
+    """Return None if label should be skipped (docstring, bare method, or empty)."""
+    label = label.strip()
+    if not label:
+        return None
     if len(label) > 60 or "\n" in label or label.startswith("`"):
         return None
-    return label.strip()
+    # bare method names like .__init__() or .read() are meaningless without class context
+    if label.startswith("."):
+        return None
+    return label
 
 
 def _why_it_matters(f: RepoFile) -> str:
@@ -43,7 +49,9 @@ def write_critical_path(
     for f in critical:
         lines.append(f"### `{f.path}`")
         lines.append(f"**Why it matters:** {_why_it_matters(f)}\n")
-        lines.append(f"- Fragility score: `{f.fragility_score}` | Degree: `{f.degree}` | Layer: {f.community}")
+        # community is either a name or a raw int string — show as "layer N" when it's numeric
+        layer_display = f.community if not f.community.isdigit() else f"layer {f.community}"
+        lines.append(f"- Fragility score: `{f.fragility_score}` | Degree: `{f.degree}` | {layer_display}")
         clean_conns = [c for raw in f.connections if (c := _clean_connection(raw)) is not None]
         if clean_conns:
             lines.append(f"- Connects to: {', '.join(clean_conns[:5])}")

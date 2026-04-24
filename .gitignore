@@ -1,4 +1,5 @@
 graphify-out/cache/
+wtfcode-output/
 __pycache__/
 *.pyc
 *.egg-info/
