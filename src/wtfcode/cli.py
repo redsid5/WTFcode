@@ -55,12 +55,8 @@ def scan(repo_path: str, output_dir: str | None, top: int, no_llm: bool, model: 
     if not use_llm and not no_llm:
         console.print("  [yellow]No LLM API key found — running structural analysis (--no-llm mode)[/yellow]")
         console.print("  [dim]Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY to enable AI analysis.[/dim]")
-        console.print("  [dim]Or add a .env file in the repo with your key.[/dim]")
-    elif use_llm:
-        display_model = model or (provider_info[1] if provider_info else "")
-        console.print(f"  [dim]Model: {display_model}[/dim]")
 
-    label = f"Generating failure scenarios..." if use_llm else "Analyzing graph topology..."
+    label = "Generating failure scenarios..." if use_llm else "Analyzing graph topology..."
     with console.status(label):
         try:
             repo_files, scenarios, token_report, repo_intro = analyze(

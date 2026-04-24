@@ -54,13 +54,13 @@ wtfcode-output/
 
 WTFcode auto-detects whichever API key you already have set. No config needed.
 
-| You have | WTFcode uses | Install |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Claude (claude-sonnet-4-5) | `pip install wtfcode[anthropic]` |
-| `OPENAI_API_KEY` | GPT (gpt-4o-mini) | `pip install wtfcode[openai]` |
-| `GEMINI_API_KEY` | Gemini (gemini-2.5-flash) | `pip install wtfcode[gemini]` |
-| Ollama running locally | Ollama (llama3.2) | just run `ollama serve` |
-| None of the above | Structural mode (free) | nothing needed |
+| You have | Install |
+|---|---|
+| `ANTHROPIC_API_KEY` | `pip install wtfcode[anthropic]` |
+| `OPENAI_API_KEY` | `pip install wtfcode[openai]` |
+| `GEMINI_API_KEY` | `pip install wtfcode[gemini]` |
+| Ollama running locally | just run `ollama serve` |
+| None of the above | nothing — structural mode is free |
 
 **Just run the scan — it picks up your key automatically:**
 ```bash
@@ -102,7 +102,7 @@ Options:
   --output-dir, -o  Where to write outputs  [default: <repo>/wtfcode-output]
   --top             Number of critical files to surface  [default: 20]
   --no-llm          Use graph topology only; no API call
-  --model           Override model, e.g. gpt-4o, claude-opus-4-7, ollama/mistral
+  --model           Override model  [default: auto-detected from your API key]
 ```
 
 ---
