@@ -1,21 +1,16 @@
 <!-- UPDATED v1 README -->
-# WTFcode
+<div align="center">
 
-**Stop refactoring by intuition.**
-
-Most devs open a file, make a change, and hope nothing downstream breaks. WTFcode shows you the blast radius before you touch anything — using a dependency graph, not guesswork.
-
-One command. Six output files. **832x fewer tokens** than reading the code (FastAPI: 700 vs 568,000).
-
-Paste the output into any AI coding assistant. It now has structural context it could never get from reading files one by one.
-
-```bash
-pip install wtfcode
-wtfcode scan path/to/repo
-```
+```text
+ ██╗    ██╗████████╗███████╗ ██████╗  ██████╗ ██████╗ ███████╗
+ ██║    ██║╚══██╔══╝██╔════╝██╔════╝ ██╔═══██╗██╔══██╗██╔════╝
+ ██║ █╗ ██║   ██║   █████╗  ██║      ██║   ██║██║  ██║█████╗  
+ ██║███╗██║   ██║   ██╔══╝  ██║      ██║   ██║██║  ██║██╔══╝  
+ ╚███╔███╔╝   ██║   ██║     ╚██████╗ ╚██████╔╝██████╔╝███████╗
+  ╚══╝╚══╝    ╚═╝   ╚═╝      ╚═════╝  ╚═════╝ ╚═════╝ ╚══════╝
 
 ---
-
+# WTFcode
 ## What it does
 
 WTFcode builds a dependency graph of your repo from AST and import analysis, ranks every node by structural risk, and produces six output files:
